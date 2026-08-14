@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Universal Quiz Engine — Admin V3.2</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#6b7280;--primary:#1769aa;--primary2:#0d4f82;--border:#dfe5ec;--danger:#c62828;--ok:#16834b}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+button,input,textarea,select{font:inherit}button{cursor:pointer}
+.top{height:64px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:20}
+.brand{font-weight:800;color:var(--primary2)}.brand small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px}
+.wrap{max-width:1250px;margin:auto;padding:24px}.hidden{display:none!important}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#eef6ff,#f8fafc)}
+.login-card{width:min(420px,100%);background:#fff;border:1px solid var(--border);border-radius:18px;padding:30px;box-shadow:0 15px 45px #16324d14}
+.login-card h1{margin:0 0 5px}.login-card p{color:var(--muted);margin-top:0}
+label{display:block;font-size:13px;font-weight:700;margin:14px 0 7px}
+input,textarea,select{width:100%;padding:11px 12px;border:1px solid #ccd5df;border-radius:9px;background:#fff;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px #1769aa14}
+textarea{min-height:100px;resize:vertical}
+.btn{border:0;border-radius:9px;padding:10px 14px;background:var(--primary);color:#fff;font-weight:700}
+.btn:hover{background:var(--primary2)}.btn.secondary{background:#eef3f8;color:#26384b}.btn.danger{background:#c62828}.btn.ok{background:var(--ok)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.card h2,.card h3{margin:0 0 14px}.muted{color:var(--muted)}
+.alert{padding:11px 13px;border-radius:9px;margin:12px 0;font-size:13px}.alert.err{background:#fff0f0;color:#9b1c1c}.alert.ok{background:#edf9f2;color:#11663d}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+.tabs{display:flex;gap:7px;flex-wrap:wrap}.tab{padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:#fff}.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:700px}th,td{padding:10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:top}th{background:#f7f9fc;white-space:nowrap}
+.stat{padding:16px;border:1px solid var(--border);border-radius:12px;background:#fff}.stat b{display:block;font-size:25px;margin-top:4px}
+.q-item{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}.q-head{display:flex;justify-content:space-between;gap:10px}.option{display:grid;grid-template-columns:36px 1fr;gap:7px;margin:7px 0}
+pre{white-space:pre-wrap;background:#101820;color:#d9e6f2;border-radius:10px;padding:15px;max-height:500px;overflow:auto}
+.toast{position:fixed;right:18px;bottom:18px;z-index:99;max-width:420px;padding:13px 16px;border-radius:10px;background:#172033;color:#fff;box-shadow:0 10px 30px #0003}
+@media(max-width:760px){.wrap{padding:14px}.g2,.g3{grid-template-columns:1fr}.top{padding:0 14px}.hide-mobile{display:none}}
+</style>
+</head>
+<body>
+
+<section id="loginView" class="login">
+  <div class="login-card">
+    <div class="brand">UNIVERSAL QUIZ ENGINE <small>Admin V3.2 — FIX LOGIN</small></div>
+    <h1>Login Admin</h1>
+    <p>Masuk untuk mengelola kuis, soal, materi, peserta, penilaian, dan pemenang.</p>
+    <div id="loginMsg"></div>
+    <label>Username</label>
+    <input id="username" autocomplete="off">
+    <label>Password</label>
+    <input id="password" type="password" autocomplete="new-password">
+    <div style="height:8px"></div>
+    <button id="loginBtn" class="btn" style="width:100%" onclick="login()">MASUK</button>
+  </div>
+</section>
+
+<section id="appView" class="hidden">
+  <header class="top">
+    <div class="brand">UNIVERSAL QUIZ ENGINE <small>ADMIN V3.2</small></div>
+    <button class="btn secondary" onclick="logout()">Keluar</button>
+  </header>
+  <main class="wrap">
+    <div id="globalMsg"></div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2 style="margin-bottom:4px">Dashboard Admin</h2>
+          <span class="muted">Kelola data kuis dari satu halaman.</span>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="newQuiz()">+ Kuis Baru</button>
+          <button class="btn secondary" onclick="loadQuizzes()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="grid g2">
+        <div>
+          <label>Pilih Kuis</label>
+          <select id="quizSelect" onchange="selectQuiz()"><option value="">Memuat...</option></select>
+        </div>
+        <div>
+          <label>Status</label>
+          <div id="quizStatus" class="stat">Belum ada kuis dipilih.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="editor" class="hidden">
+      <div class="tabs">
+        <button class="tab active" data-tab="participants" onclick="showTab('participants')">Peserta & Nilai</button>
+        <button class="tab" data-tab="quiz" onclick="showTab('quiz')">Data Kuis</button>
+        <button class="tab" data-tab="questions" onclick="showTab('questions')">Soal</button>
+        <button class="tab" data-tab="materials" onclick="showTab('materials')">Materi</button>
+        <button class="tab" data-tab="publication" onclick="showTab('publication')">Publikasi</button>
+      </div>
+
+      <section id="tab-quiz" class="tabpage card hidden">
+        <h2>Data Kuis</h2>
+        <div class="grid g2">
+          <div><label>QuizID</label><input id="f-QuizID"></div>
+          <div><label>Slug</label><input id="f-Slug"></div>
+          <div><label>Judul</label><input id="f-Judul"></div>
+          <div><label>Tagline</label><input id="f-Tagline"></div>
+          <div><label>Deskripsi</label><textarea id="f-Deskripsi"></textarea></div>
+          <div><label>Ketentuan</label><textarea id="f-Ketentuan"></textarea></div>
+          <div><label>Durasi (menit)</label><input id="f-DurasiMenit" type="number"></div>
+          <div><label>Jumlah Pemenang</label><input id="f-JumlahPemenang" type="number"></div>
+          <div><label>Hadiah / pemenang</label><input id="f-Hadiah" type="number"></div>
+          <div><label>Status</label><select id="f-Status"><option>DRAFT</option><option>OPEN</option><option>CLOSED</option></select></div>
+          <div><label>Tanggal Mulai</label><input id="f-TanggalMulai"></div>
+          <div><label>Tanggal Selesai</label><input id="f-TanggalSelesai"></div>
+          <div><label>Penyelenggara</label><input id="f-Penyelenggara"></div>
+          <div><label>Sumber Materi</label><input id="f-SumberMateri"></div>
+          <div><label>Pemateri</label><input id="f-Pemateri"></div>
+          <div><label>Link Materi</label><input id="f-LinkMateri"></div>
+          <div><label>Peserta</label><input id="f-Peserta"></div>
+          <div><label>Biaya</label><input id="f-Biaya"></div>
+          <div><label>Kontak</label><input id="f-Kontak"></div>
+          <div><label>Instagram</label><input id="f-Instagram"></div>
+          <div><label>Facebook</label><input id="f-Facebook"></div>
+          <div><label>Website</label><input id="f-Website"></div>
+          <div><label>CTA</label><input id="f-CTA"></div>
+          <div><label>Logo URL</label><input id="f-LogoURL"></div>
+          <div><label>QR URL</label><input id="f-QRURL"></div>
+          <div><label>Catatan Poster</label><textarea id="f-PosterNotes"></textarea></div>
+          <div><label>Pesan Pemenang</label><textarea id="f-PesanPemenang"></textarea></div>
+        </div>
+        <div style="margin-top:15px" class="actions">
+          <button class="btn ok" onclick="saveQuiz()">Simpan Kuis</button>
+          <button class="btn secondary" onclick="duplicateCurrent()">Duplikasi</button>
+        </div>
+      </section>
+
+      <section id="tab-questions" class="tabpage card hidden">
+        <div class="toolbar"><h2>Soal</h2><button class="btn" onclick="addQuestion()">+ Tambah Soal</button></div>
+        <div id="questionsList"></div>
+        <button class="btn ok" onclick="saveQuestions()">Simpan Semua Soal</button>
+      </section>
+
+      <section id="tab-materials" class="tabpage card hidden">
+        <div class="toolbar"><h2>Materi Pembelajaran</h2><button class="btn" onclick="addMaterial()">+ Tambah Materi</button></div>
+        <div id="materialsList"></div>
+        <button class="btn ok" onclick="saveMaterials()">Simpan Semua Materi</button>
+      </section>
+
+      <section id="tab-participants" class="tabpage card">
+        <div class="toolbar">
+          <h2>Peserta & Penilaian</h2>
+          <div class="actions">
+            <button class="btn secondary" onclick="loadDashboard()">↻ Muat</button>
+            <button class="btn" onclick="publishWinners()">Tentukan Pemenang</button>
+          </div>
+        </div>
+        <div id="stats" class="grid g3"></div>
+        <div style="height:12px"></div>
+        <div class="table-wrap"><table><thead><tr><th>Rank</th><th>Nama</th><th>WhatsApp</th><th>Status</th><th>Total</th><th>Hadiah</th><th>Aksi</th></tr></thead><tbody id="participantsBody"></tbody></table></div>
+      </section>
+
+      <section id="tab-publication" class="tabpage card hidden">
+        <div class="toolbar"><h2>Data Publikasi</h2><button class="btn" onclick="loadBrief()">Buat Brief</button></div>
+        <pre id="brief">Klik "Buat Brief".</pre>
+      </section>
+    </div>
+  </main>
+</section>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+/*
+  PENTING:
+  Jangan gunakan pola:
+  google.script.run...[fn](...)
+  karena Apps Script HTML Service tidak menjamin pemanggilan method
+  google.script.run secara dinamis dengan bracket notation.
+
+  Semua pemanggilan backend di file ini dibuat eksplisit.
+*/
+
+const state={user:'',pass:'',quizzes:[],quiz:null,questions:[],materials:[],dashboard:null};
+
+function $(id){return document.getElementById(id)}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function toast(msg,ok=false){const t=$('toast');t.textContent=msg;t.classList.remove('hidden');t.style.background=ok?'#16834b':'#172033';clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.add('hidden'),3500)}
+function msg(el,text,ok=false){$(el).innerHTML=text?`<div class="alert ${ok?'ok':'err'}">${esc(text)}</div>`:''}
+
+function callServer(method,args,success,error){
+  if(typeof google==='undefined'||!google.script||!google.script.run){
+    error&&error(new Error('google.script.run tidak tersedia. File HTML harus dijalankan dari Google Apps Script Web App.'));
+    return;
+  }
+  try{
+    const runner=google.script.run
+      .withSuccessHandler(success||function(){})
+      .withFailureHandler(error||function(e){toast(e&&e.message?e.message:String(e))});
+    // PEMANGGILAN METHOD HARUS EKSPLISIT.
+    switch(method){
+      case 'adminLogin': return runner.adminLogin(...args);
+      case 'listQuizzes': return runner.listQuizzes(...args);
+      case 'updateQuiz': return runner.updateQuiz(...args);
+      case 'duplicateQuiz': return runner.duplicateQuiz(...args);
+      case 'getMaterials': return runner.getMaterials(...args);
+      case 'saveMaterials': return runner.saveMaterials(...args);
+      case 'saveQuestions': return runner.saveQuestions(...args);
+      case 'getAdminDashboard': return runner.getAdminDashboard(...args);
+      case 'getAdminQuestions': return runner.getAdminQuestions(...args);
+      case 'saveScores': return runner.saveScores(...args);
+      case 'publishWinners': return runner.publishWinners(...args);
+      case 'getPublicationBrief': return runner.getPublicationBrief(...args);
+      case 'updateGiftStatus': return runner.updateGiftStatus(...args);
+      default: throw new Error('Fungsi backend tidak terdaftar di client: '+method);
+    }
+  }catch(e){error&&error(e)}
+}
+
+function login(){
+  const u=$('username').value.trim(),p=$('password').value;
+  $('loginBtn').disabled=true;$('loginBtn').textContent='MEMERIKSA...';msg('loginMsg','');
+  callServer('adminLogin',[u,p],r=>{
+    $('loginBtn').disabled=false;$('loginBtn').textContent='MASUK';
+    if (r && r.ok) {
+    state.user = u; 
+    state.pass = p;
+    
+    // LOGIKA PEMBATASAN BARU
+    if (r.role === 'viewer') {
+      // Sembunyikan tab navigasi
+      document.querySelector('[data-tab="quiz"]').classList.add('hidden');
+      document.querySelector('[data-tab="questions"]').classList.add('hidden');
+      document.querySelector('[data-tab="materials"]').classList.add('hidden');
+      document.querySelector('[data-tab="publication"]').classList.add('hidden');
+      
+      // Paksa pindah ke tab peserta
+      showTab('participants');
+    }
+
+    $('loginView').classList.add('hidden');
+    $('appView').classList.remove('hidden');
+    loadQuizzes();
+    if (state.role === 'viewer') {
+    setTimeout(function() {
+        showTab('participants');
+    }, 1000); // Tunggu 1 detik agar data kuis sudah ter-load
+}
+  }else msg('loginMsg','Username atau password admin salah.');
+  },e=>{
+    $('loginBtn').disabled=false;$('loginBtn').textContent='MASUK';
+    msg('loginMsg',e.message||String(e));
+  });
+}
+
+
+function logout(){sessionStorage.removeItem('uqe_user');sessionStorage.removeItem('uqe_pass');location.reload()}
+
+function boot(){
+  const u=sessionStorage.getItem('uqe_user'),p=sessionStorage.getItem('uqe_pass');
+  if(u&&p){
+    callServer('adminLogin',[u,p],r=>{
+      if(r&&r.ok){state.user=u;state.pass=p;$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');loadQuizzes()}
+      else sessionStorage.clear();
+    });
+  }
+}
+function loadQuizzes(){
+  msg('globalMsg','Memuat data kuis...');
+  callServer('listQuizzes',[state.user,state.pass],r=>{
+    if(!r||!r.ok){msg('globalMsg',r?.message||'Gagal memuat kuis.');return}
+    state.quizzes=r.quizzes||[];const s=$('quizSelect');s.innerHTML='<option value="">— Pilih Kuis —</option>';
+    state.quizzes.forEach(q=>{const o=document.createElement('option');o.value=q.QuizID;o.textContent=(q.Judul||q.QuizID)+' ['+(q.Status||'DRAFT')+']';s.appendChild(o)});
+    msg('globalMsg','',true);
+    if(state.quizzes.length) {s.value=state.quiz?.QuizID||state.quizzes[0].QuizID;selectQuiz()}
+    else newQuiz();
+  },e=>msg('globalMsg',e.message||String(e)));
+}
+function selectQuiz(){
+  const id=$('quizSelect').value;state.quiz=state.quizzes.find(q=>q.QuizID===id)||null;
+  if(!state.quiz){$('editor').classList.add('hidden');$('quizStatus').textContent='Belum ada kuis dipilih.';return}
+  $('editor').classList.remove('hidden');$('quizStatus').innerHTML='<b>'+esc(state.quiz.Status)+'</b><br>'+esc(state.quiz.Judul);
+  fillQuiz(state.quiz);
+  // Jangan memanggil dashboard bersamaan dengan questions/materials saat awal memilih kuis.
+  // Dashboard hanya dimuat ketika tab Peserta & Nilai dibuka atau tombol Muat ditekan.
+  loadQuestions();
+  loadMaterials();
+}
+function newQuiz(){
+  const id='QUIZ-'+new Date().getTime();
+  state.quiz={QuizID:id,Slug:id.toLowerCase(),Judul:'Kuis Baru',Tagline:'',Deskripsi:'',DurasiMenit:30,TanggalMulai:'',TanggalSelesai:'',Hadiah:0,JumlahPemenang:0,Status:'DRAFT',AcakSoal:false,AcakPilihan:false};
+  $('editor').classList.remove('hidden');fillQuiz(state.quiz);showTab('quiz');
+}
+const fields=['QuizID','Slug','Judul','Tagline','Deskripsi','DurasiMenit','JumlahPemenang','Hadiah','Status','TanggalMulai','TanggalSelesai','Penyelenggara','SumberMateri','Pemateri','LinkMateri','Peserta','Biaya','Kontak','Instagram','Facebook','Website','CTA','LogoURL','QRURL','PosterNotes','PesanPemenang','Ketentuan'];
+function fillQuiz(q){fields.forEach(k=>{if($('f-'+k))$('f-'+k).value=q[k]??''})}
+function readQuiz(){const q={};fields.forEach(k=>{let v=$('f-'+k)?.value??'';if(['DurasiMenit','JumlahPemenang','Hadiah'].includes(k))v=Number(v||0);q[k]=v});q.AcakSoal=!!state.quiz?.AcakSoal;q.AcakPilihan=!!state.quiz?.AcakPilihan;return q}
+function saveQuiz(){
+  const d=readQuiz();if(!d.QuizID||!d.Judul){toast('QuizID dan Judul wajib diisi.');return}
+  callServer('updateQuiz',[state.user,state.pass,d],r=>{
+    if(!r?.ok){toast(r?.message||'Gagal menyimpan.');return}
+    state.quiz=d;toast('Kuis berhasil disimpan.',true);loadQuizzes();
+  });
+}
+function duplicateCurrent(){
+  if(!state.quiz){toast('Pilih kuis dahulu.');return}
+  const nid=prompt('QuizID baru:',state.quiz.QuizID+'-COPY');if(!nid)return;
+  const nt=prompt('Judul baru:',state.quiz.Judul+' — Salinan');if(!nt)return;
+  callServer('duplicateQuiz',[state.user,state.pass,state.quiz.QuizID,nid,nt],r=>{
+    if(r?.ok){toast('Kuis berhasil diduplikasi.',true);loadQuizzes()}else toast(r?.message||'Gagal duplikasi.')
+  });
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tabpage').forEach(x => x.classList.add('hidden'));
+  const target = $('tab-' + name);
+  if (target) target.classList.remove('hidden');
+  
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name));
+  
+  // Panggil fungsi hanya jika tab-nya ada (mencegah error saat Lulu akses tab tersembunyi)
+  if (name === 'questions' && typeof loadQuestions === 'function') loadQuestions();
+  if (name === 'materials' && typeof loadMaterials === 'function') loadMaterials();
+  if (name === 'participants') loadDashboard();
+  if (name === 'publication' && typeof loadBrief === 'function') loadBrief();
+}
+
+function loadQuestions(){
+  if(!state.quiz)return;
+  // Tidak ada getQuestions publik di backend, jadi gunakan dashboard yang juga mengembalikan questions.
+  callServer('getAdminQuestions',[state.user,state.pass,state.quiz.QuizID],r=>{
+    if(r?.ok){state.questions=r.questions||[];renderQuestions()}
+    else toast(r?.message||'Gagal memuat soal.')
+  });
+}
+function renderQuestions(){
+  const box=$('questionsList');box.innerHTML='';
+  state.questions.forEach((q,i)=>{
+    const div=document.createElement('div');div.className='q-item';
+    const opts=Array.isArray(q.Options)?q.Options:[];
+    div.innerHTML=`<div class="q-head"><b>Soal ${i+1}</b><button class="btn danger" onclick="removeQuestion(${i})">Hapus</button></div>
+    <label>Pertanyaan</label><textarea class="q-text">${esc(q.Pertanyaan)}</textarea>
+    <div class="grid g3"><div><label>Tipe</label><select class="q-type"><option value="essay">essay</option><option value="choice">choice</option><option value="mcq">mcq</option><option value="truefalse">truefalse</option><option value="checkbox">checkbox</option></select></div><div><label>Bobot</label><input class="q-weight" type="number" value="${esc(q.Bobot)}"></div><div><label>Status Soal</label><select class="q-status"><option value="DRAFT">DRAFT</option><option value="OPEN">OPEN</option><option value="CLOSED">CLOSED</option></select></div><div><label>Aktif</label><select class="q-active"><option value="true">Ya</option><option value="false">Tidak</option></select></div></div>
+    <label>Pilihan JSON</label><textarea class="q-options">${esc(JSON.stringify(opts))}</textarea>`;
+    div.querySelector('.q-type').value=q.Tipe||'essay';div.querySelector('.q-active').value=q.Aktif===false?'false':'true';div.querySelector('.q-status').value=['DRAFT','OPEN','CLOSED'].includes(String(q.Status||'').toUpperCase())?String(q.Status||'').toUpperCase():'OPEN';box.appendChild(div);
+  });
+  if(!state.questions.length)box.innerHTML='<p class="muted">Belum ada soal.</p>';
+}
+function addQuestion(){state.questions.push({QuestionID:'',Pertanyaan:'',Tipe:'essay',Bobot:10,Options:[],Aktif:true,Status:'OPEN'});renderQuestions()}
+function removeQuestion(i){state.questions.splice(i,1);renderQuestions()}
+function collectQuestions(){
+  return [...document.querySelectorAll('#questionsList .q-item')].map((el,i)=>{
+    let options=[];try{options=JSON.parse(el.querySelector('.q-options').value||'[]')}catch(e){options=[]}
+    return {QuestionID:state.questions[i]?.QuestionID||'',Pertanyaan:el.querySelector('.q-text').value,Tipe:el.querySelector('.q-type').value,Bobot:Number(el.querySelector('.q-weight').value||0),Options:options,Aktif:el.querySelector('.q-active').value==='true',Status:el.querySelector('.q-status').value||'DRAFT'};
+  });
+}
+function saveQuestions(){
+  const qs=collectQuestions();callServer('saveQuestions',[state.user,state.pass,state.quiz.QuizID,qs],r=>{
+    if(r?.ok){toast('Soal berhasil disimpan.',true);loadQuestions()}else toast(r?.message||'Gagal menyimpan soal.')
+  });
+}
+
+function loadMaterials(){
+  if(!state.quiz)return;
+  callServer('getMaterials',[state.user,state.pass,state.quiz.QuizID],r=>{
+    if(r?.ok){state.materials=r.materials||[];renderMaterials()}else toast(r?.message||'Gagal memuat materi.')
+  });
+}
+function renderMaterials(){
+  const box=$('materialsList');box.innerHTML='';
+  state.materials.forEach((m,i)=>{
+    const d=document.createElement('div');d.className='q-item';
+    d.innerHTML=`<div class="q-head"><b>Materi ${i+1}</b><button class="btn danger" onclick="removeMaterial(${i})">Hapus</button></div>
+    <div class="grid g2"><div><label>Tipe</label><input class="m-type" value="${esc(m.Tipe)}"></div><div><label>Judul</label><input class="m-title" value="${esc(m.Judul)}"></div><div><label>URL</label><input class="m-url" value="${esc(m.URL)}"></div><div><label>Deskripsi</label><input class="m-desc" value="${esc(m.Deskripsi)}"></div></div>
+    <label>Konten</label><textarea class="m-content">${esc(m.Konten)}</textarea>`;
+    box.appendChild(d);
+  });
+  if(!state.materials.length)box.innerHTML='<p class="muted">Belum ada materi.</p>';
+}
+function addMaterial(){state.materials.push({MaterialID:'',Tipe:'link',Judul:'',Deskripsi:'',URL:'',Konten:'',Aktif:true});renderMaterials()}
+function removeMaterial(i){state.materials.splice(i,1);renderMaterials()}
+function collectMaterials(){return [...document.querySelectorAll('#materialsList .q-item')].map((el,i)=>({MaterialID:state.materials[i]?.MaterialID||'',Tipe:el.querySelector('.m-type').value,Judul:el.querySelector('.m-title').value,URL:el.querySelector('.m-url').value,Deskripsi:el.querySelector('.m-desc').value,Konten:el.querySelector('.m-content').value,Aktif:true}))}
+function saveMaterials(){callServer('saveMaterials',[state.user,state.pass,state.quiz.QuizID,collectMaterials()],r=>{if(r?.ok){toast('Materi berhasil disimpan.',true);loadMaterials()}else toast(r?.message||'Gagal menyimpan materi.')})}
+
+function loadDashboard(){
+  if(!state.quiz){toast('Pilih kuis terlebih dahulu.');return}
+  const quizId=state.quiz.QuizID;
+  $('participantsBody').innerHTML='<tr><td colspan=7>Memuat dashboard...</td></tr>';
+  callServer('getAdminDashboard',[state.user,state.pass,quizId],r=>{
+    if(!r?.ok){
+      $('participantsBody').innerHTML='<tr><td colspan=7>Dashboard gagal dimuat.</td></tr>';
+      toast('Dashboard: '+(r?.message||'Gagal memuat dashboard.'));
+      return;
+    }
+    state.dashboard=r;
+    renderDashboard();
+  },e=>{
+    $('participantsBody').innerHTML='<tr><td colspan=7>Dashboard gagal dimuat.</td></tr>';
+    toast('Dashboard: '+(e?.message||String(e)));
+  });
+}
+function renderDashboard() {
+  if (!state.dashboard) return;
+  
+  const s = state.dashboard.stats || {};
+  $('stats').innerHTML = [
+    ['Total', s.total || 0], ['Selesai', s.selesai || 0], ['Mengerjakan', s.mengerjakan || 0],
+    ['Waktu Habis', s.habis || 0], ['Belum Dinilai', s.belumDinilai || 0]
+  ].map(x => '<div class="stat"><span class="muted">' + x[0] + '</span><b>' + x[1] + '</b></div>').join('');
+  
+  const body = $('participantsBody');
+  body.innerHTML = '';
+
+  const dataPeserta = state.dashboard.data || [];
+  
+  // Mengurutkan peserta berdasarkan total nilai tertinggi & waktu tercepat
+  const sorted = dataPeserta.slice().sort((a, b) => {
+    const diff = Number(b.total || 0) - Number(a.total || 0);
+    if (diff !== 0) return diff;
+    const ta = a.finishTime ? new Date(a.finishTime).getTime() : Infinity;
+    const tb = b.finishTime ? new Date(b.finishTime).getTime() : Infinity;
+    return ta - tb;
+  });
+
+  const rankMap = {};
+  sorted.forEach((p, i) => {
+    rankMap[p.id] = i + 1;
+  });
+
+  dataPeserta.forEach(p => {
+    const computedRank = rankMap[p.id];
+    const isTop10 = computedRank <= 10;
+    const displayRank = p.winnerRank || computedRank;
+
+    let actionBtns = '<button class="btn secondary" onclick="grade(\'' + esc(p.id) + '\')">Nilai</button>';
+    
+    // Tombol WhatsApp khusus 10 besar yang sudah memiliki nilai > 0
+    if (isTop10 && Number(p.total) > 0) {
+      actionBtns += ' <button class="btn" style="margin-left:5px; background:#25D366; color:#fff;" onclick="contactWA(\'' + esc(p.id) + '\', ' + displayRank + ')">WA</button>';
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + esc(p.winnerRank || '-') + '</td>' +
+                   '<td><b>' + esc(p.nama) + '</b><br><span class="muted">' + esc(p.email) + '</span></td>' +
+                   '<td>' + esc(p.wa) + '</td>' +
+                   '<td>' + esc(p.status) + '</td>' +
+                   '<td><b>' + esc(p.total) + '</b></td>' +
+                   '<td>' + esc(p.HadiahStatus || 'Belum Diproses') + '</td>' +
+                   '<td style="white-space:nowrap;">' + actionBtns + '</td>';
+    body.appendChild(tr);
+  });
+}
+
+// Fungsi aksi tombol WhatsApp
+window.contactWA = function(id, rank) {
+  const p = (state.dashboard.data || []).find(x => x.id === id);
+  if (!p) return;
+
+  let wa = String(p.wa || '').replace(/[^0-9]/g, ''); 
+  if (wa.indexOf('0') === 0) {
+    wa = '62' + wa.substring(1);
+  } else if (wa.indexOf('8') === 0) {
+    wa = '62' + wa;
+  }
+
+  const qTitle = state.quiz ? state.quiz.Judul : 'Kuis';
+  const text = "Halo *" + p.nama + "*,\n\nSelamat! Anda berhasil meraih *Peringkat " + rank + "* pada kegiatan *" + qTitle + "* dengan total nilai *" + p.total + "*.\n\nSilakan balas pesan ini untuk informasi dan konfirmasi pengiriman hadiah. Terima kasih.";
+
+  window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(text), '_blank');
+};
+
+
+function grade(id) {
+  const p = (state.dashboard.data || []).find(x => x.id === id);
+  if (!p) return;
+
+  // 1. Buat kontainer modal jika belum ada di dalam DOM
+  let modal = $('gradeModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'gradeModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:15px;';
+    document.body.appendChild(modal);
+  }
+
+  const qs = state.dashboard.questions || [];
+  const answers = Array.isArray(p.answers) ? p.answers : [];
+
+  // 2. Bangun UI Modal
+  let html = `
+    <div class="card" style="width:100%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden;box-shadow:0 15px 40px rgba(0,0,0,0.3)">
+      <div style="padding:20px;border-bottom:1px solid var(--border);background:#f7f9fc;">
+        <h2 style="margin:0;color:var(--primary2)">Penilaian: ${esc(p.nama)}</h2>
+        <div class="muted" style="font-size:13px;margin-top:4px;">WhatsApp: ${esc(p.wa)} | Total Nilai Sementara: <b>${p.total}</b></div>
+      </div>
+      
+      <div id="gradeForm" data-pid="${id}" style="padding:20px;overflow-y:auto;background:#fff;">`;
+
+  if (qs.length === 0) {
+    html += `<p class="muted">Tidak ada soal untuk dinilai.</p>`;
+  } else {
+    qs.forEach((q, i) => {
+      // Pasangkan jawaban peserta dengan ID Soal
+      let ansObj = answers.find(a => a && a.QuestionID === q.QuestionID);
+      if (!ansObj && answers[i]) {
+        ansObj = typeof answers[i] === 'object' ? answers[i] : { answer: answers[i] };
+      }
+      
+      let userAns = ansObj ? ansObj.answer : '-';
+      if (Array.isArray(userAns)) userAns = userAns.join(', ');
+      
+      // Ambil nilai sebelumnya jika sudah pernah dinilai
+      let currentScore = ansObj && ansObj.score != null && ansObj.score !== '' ? ansObj.score : 0;
+
+      html += `
+        <div style="border:1px solid var(--border); border-radius:10px; padding:15px; margin-bottom:15px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <b style="color:var(--primary2)">Soal ${i + 1} <span style="color:var(--muted);font-weight:normal;font-size:12px;">(${q.Tipe})</span></b>
+            <span class="muted" style="font-size:12px; font-weight:bold;">Bobot Maks: ${q.Bobot}</span>
+          </div>
+          <div style="font-size:14px;margin-bottom:12px;">${esc(q.Pertanyaan).replace(/\n/g, '<br>')}</div>
+          
+          <label style="font-size:12px;color:var(--muted);margin-bottom:4px;">Jawaban Peserta:</label>
+          <div style="background:#f4f7fb;padding:12px;border-radius:8px;font-size:14px;margin-bottom:12px;border:1px solid #e1e7ee;white-space:pre-wrap;min-height:40px;">${esc(userAns)}</div>
+          
+          <div style="display:flex;align-items:center;gap:10px;">
+            <label style="margin:0;font-size:13px;">Beri Nilai:</label>
+            <input type="number" id="score_${q.QuestionID}" value="${currentScore}" max="${q.Bobot}" min="0" style="width:100px;padding:8px;border:1px solid var(--border);border-radius:6px;font-weight:bold;">
+          </div>
+        </div>`;
+    });
+  }
+
+  html += `
+      </div>
+      <div style="padding:15px 20px;border-top:1px solid var(--border);background:#f7f9fc;display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn secondary" onclick="closeGradeModal()">Batal</button>
+        <button class="btn ok" onclick="submitGradeModal(this)">Simpan Penilaian</button>
+      </div>
+    </div>`;
+
+  modal.innerHTML = html;
+  modal.style.display = 'flex';
+}
+
+function closeGradeModal() {
+  const modal = $('gradeModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function submitGradeModal(btn) {
+  const form = $('gradeForm');
+  if (!form) return;
+  
+  const pid = form.dataset.pid;
+  const scores = {};
+  const qs = state.dashboard.questions || [];
+  
+  // Kumpulkan semua input nilai
+  qs.forEach(q => {
+    const input = $('score_' + q.QuestionID);
+    scores[q.QuestionID] = input ? Number(input.value || 0) : 0;
+  });
+  
+  // Ubah status tombol untuk mencegah klik ganda
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+  
+  callServer('saveScores', [state.user, state.pass, pid, scores, {}], r => {
+    if (r?.ok) {
+      toast('Nilai berhasil disimpan.', true);
+      closeGradeModal();
+      loadDashboard(); // Refresh otomatis tabel peserta
+    } else {
+      toast(r?.message || 'Gagal menyimpan nilai.');
+      btn.disabled = false;
+      btn.textContent = 'Simpan Penilaian';
+    }
+  });
+}
+
+
+function publishWinners(){
+  if(!confirm('Tentukan pemenang berdasarkan nilai dan waktu selesai?'))return;
+  callServer('publishWinners',[state.user,state.pass,state.quiz.QuizID],r=>{if(r?.ok){toast('Pemenang berhasil ditentukan.',true);loadDashboard()}else toast(r?.message||'Gagal menentukan pemenang.')});
+}
+function loadBrief(){
+  if(!state.quiz)return;
+  callServer('getPublicationBrief',[state.user,state.pass,state.quiz.QuizID],r=>{$('brief').textContent=r?.ok?r.brief:(r?.message||'Gagal membuat brief.')});
+}
+boot();
+</script>
+</body>
+</html>
