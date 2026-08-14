@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quiz Engine</title>
+<style>
+:root{--primary:#173f35;--primary2:#245b4d;--gold:#b58b2a;--cream:#f6f3eb;--text:#1f2725;--muted:#6b7571;--border:#dfe6e2;--danger:#a92f2f;--success:#1d7048}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--text);font-family:Arial,sans-serif;line-height:1.55}
+.hero{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;padding:36px 18px;text-align:center}
+.hero h1{margin:4px 0;font-size:clamp(30px,7vw,52px)}.hero p{margin:6px auto;max-width:760px;opacity:.9}.tagline{color:#f0d78d;font-weight:800}
+.meta{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px}.pill{padding:7px 12px;border-radius:999px;background:#ffffff14;border:1px solid #ffffff26;font-weight:700}
+main{max-width:900px;margin:auto;padding:18px}.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 3px 16px #0000000a}
+h2{color:var(--primary);margin-top:0}.notice{border-left:5px solid var(--gold)}.source{background:#f8faf9}
+label{display:block;font-weight:800;font-size:13px;margin:13px 0 5px}input,textarea{width:100%;padding:11px;border:1px solid #cbd6d2;border-radius:9px;font:inherit}textarea{min-height:125px;resize:vertical}
+button{border:0;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer}.primary{background:var(--primary);color:#fff;width:100%}.primary:disabled{opacity:.6;cursor:wait}
+.agree{display:flex;gap:9px;align-items:flex-start;font-weight:normal}.agree input{width:auto;margin-top:4px}
+.timer-card{position:sticky;top:0;z-index:5;text-align:center}.timer{font-size:40px;font-weight:900;letter-spacing:2px}.warning{color:#b16a00}.danger{color:#b3261e}
+.question{border:1px solid var(--border);border-radius:12px;padding:16px;margin:14px 0}.qnum{font-size:12px;font-weight:900;color:var(--gold)}.qtext{font-size:17px;font-weight:700;margin:6px 0 12px}.arabic{direction:rtl;text-align:right;font-size:20px}
+.option{display:flex;gap:9px;padding:9px;border:1px solid #e2e8e5;border-radius:8px;margin:6px 0;font-weight:normal}.option input{width:auto}
+.progress{height:8px;background:#e8eeeb;border-radius:10px;overflow:hidden}.bar{height:100%;background:var(--gold);width:0}
+.msg{padding:12px;border-radius:9px;margin:10px 0}.err{background:#fde9e9;color:#8e2525}.ok{background:#e5f5ec;color:#1d6846}.info{background:#eaf2f7;color:#28536b}.hidden{display:none}.success{text-align:center}.idbox{font-size:22px;font-weight:900;background:#f2f7f5;padding:15px;border-radius:10px}
+.details{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.detail{padding:10px;background:#f7f9f8;border-radius:9px}.detail b{display:block;color:var(--primary);font-size:12px}
+.material{border:1px solid var(--border);border-radius:14px;padding:14px;margin:12px 0;background:#fbfcfb}.material h3{margin:0 0 5px;color:var(--primary)}.material-desc{font-size:13px;color:var(--muted);margin-bottom:10px}.video-wrap{position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#111}.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.material-placeholder{background:#eef3f0;border-radius:10px;padding:28px;text-align:center}.material-placeholder button{background:var(--primary);color:#fff}.ready-box{border:2px solid var(--gold);background:#fffaf0}.footer{text-align:center;color:var(--muted);font-size:12px;padding:12px 0 30px}
+@media(max-width:600px){main{padding:10px}.card{padding:16px}.details{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="tagline" id="tagline">Memuat...</div>
+  <h1 id="title">Memuat kuis...</h1>
+  <p id="desc"></p>
+  <div class="meta">
+    <span class="pill" id="durationPill"></span>
+    <span class="pill" id="prizePill"></span>
+    <span class="pill" id="winnerPill"></span>
+  </div>
+</header>
+
+<main>
+<section id="loading" class="card">Tunggu sebentar...</section>
+
+<section id="infoBox" class="card hidden">
+  <h2>Informasi Kuis</h2>
+  <div class="details" id="details"></div>
+</section>
+
+<section id="sourceBox" class="card source hidden">
+  <h2>Materi Pembelajaran</h2>
+  <div id="sourceText"></div>
+  <div id="materialsList"></div>
+</section>
+
+<section id="readyBox" class="card ready-box hidden">
+  <h2>Sudah Mempelajari Materi?</h2>
+  <p>Pelajari seluruh materi di atas terlebih dahulu. Setelah Anda siap, klik tombol di bawah. <b>Waktu pengerjaan belum dimulai</b> sebelum tombol <b>MULAI KUIS</b> ditekan.</p>
+  <button class="primary" id="readyBtn" onclick="markReady()">SAYA SUDAH MEMPELAJARI MATERI</button>
+</section>
+
+<section id="noticeBox" class="card notice hidden">
+  <h2>Petunjuk & Ketentuan</h2>
+  <div id="termsText"></div>
+</section>
+
+<section id="closedBox" class="card hidden">
+  <div id="closedMessage" class="msg err"></div>
+</section>
+
+<section id="startBox" class="card hidden">
+  <h2>Siap Memulai Kuis</h2>
+  <div id="message"></div>
+  <label>Nama Lengkap</label><input id="nama" autocomplete="name">
+  <label>Nomor WhatsApp</label><input id="wa" placeholder="08xxxxxxxxxx" inputmode="tel" autocomplete="tel">
+  <label>Email (opsional)</label><input id="email" type="email" autocomplete="email">
+  <label class="agree"><input id="agree" type="checkbox"> Saya menyatakan mengikuti kuis ini dengan jujur dan menyetujui aturan yang ditetapkan.</label>
+  <div class="msg info">Setelah tombol <b>MULAI KUIS</b> ditekan, timer akan mulai berjalan selama durasi yang ditetapkan dan tidak dapat diulang.</div>
+  <button class="primary" id="startBtn" onclick="startQuiz()">MULAI KUIS</button>
+  <p><small id="durationInfo"></small></p>
+</section>
+
+<section id="quizBox" class="hidden">
+  <div class="card timer-card"><div>SISA WAKTU</div><div id="timer" class="timer">00:00</div><small id="timerStatus"></small></div>
+  <div class="card"><div id="progressText">0 soal</div><div class="progress"><div id="bar" class="bar"></div></div></div>
+  <form id="quizForm"></form>
+  <div class="card"><div id="submitMsg"></div><button class="primary" id="submitBtn" type="button" onclick="submitQuiz()">KIRIM JAWABAN</button></div>
+</section>
+
+<section id="successBox" class="card success hidden">
+  <h2>Alhamdulillah, jawaban berhasil dikirim.</h2>
+  <p>ID peserta Anda:</p><div id="pid" class="idbox"></div>
+  <p>Simpan ID ini sebagai bukti pengiriman.</p>
+</section>
+
+<section id="resultsBox" class="card hidden">
+  <h2>Daftar Peserta & Nilai Kuis</h2>
+  <p class="muted">Berikut adalah daftar peserta yang telah berpartisipasi dan menyelesaikan kuis.</p>
+  <div style="overflow-x:auto; margin-top:15px; border:1px solid var(--border); border-radius:10px;">
+    <table style="width:100%; border-collapse:collapse; min-width:500px;">
+      <thead>
+        <tr style="background:#f7f9fc; border-bottom:1px solid var(--border);">
+          <th style="padding:10px; text-align:left;">Peringkat</th>
+          <th style="padding:10px; text-align:left;">Nama Peserta</th>
+          <th style="padding:10px; text-align:left;">Waktu Mulai</th>
+          <th style="padding:10px; text-align:left;">Durasi</th>
+          <th style="padding:10px; text-align:left;">Nilai</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:20px; text-align:center;">
+    <a href="?" id="backQuizBtn" style="text-decoration:none; display:inline-block; padding:12px 20px; background:var(--primary); color:#fff; border-radius:10px; font-weight:800;">Kembali ke Halaman Kuis</a>
+  </div>
+</section>
+
+<div class="footer" id="footerText"></div>
+
+</main>
+
+<script>
+const params=new URLSearchParams(location.search),quizId=params.get('quiz')||'Q001';
+let QUIZ=null,SESSION=null,questions=[],timer=null,autoSubmitting=false,READY_AT=null;
+const $=id=>document.getElementById(id);
+
+function run(fn,...args){
+  return new Promise((resolve,reject)=>{
+    const r=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+    try{
+      switch(fn){
+        case 'getPublicQuiz':return r.getPublicQuiz(...args);
+        case 'getQuizState':return r.getQuizState(...args);
+        case 'startQuiz':return r.startQuiz(...args);
+        case 'submitEntry':return r.submitEntry(...args);
+        case 'getPublicParticipants': return r.getPublicParticipants(...args);
+        default:return reject(new Error('Fungsi backend tidak terdaftar: '+fn));
+        }
+    }
+    catch(e){
+      reject(e)}
+  })
+}
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function showMsg(text,type='err',target='message'){$(target).innerHTML='<div class="msg '+type+'">'+esc(text)+'</div>'}
+function money(n){return 'Rp '+Number(n||0).toLocaleString('id-ID')}
+function fmtDate(v){if(!v)return '';const d=new Date(v);return isNaN(d)?'':d.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}
+function setLink(id,url,label){const el=$(id);if(url){el.href=url;el.textContent=label||url;el.classList.remove('hidden')}else el.classList.add('hidden')}
+
+async function init(){
+ try{
+  const viewMode = params.get('view');
+  if (viewMode === 'hasil') {
+    $('loading').classList.add('hidden');
+    $('resultsBox').classList.remove('hidden');
+    // Sembunyikan elemen kuis lain agar tidak bertumpuk
+    $('infoBox')?.classList.add('hidden');
+    $('sourceBox')?.classList.add('hidden');
+    $('readyBox')?.classList.add('hidden');
+    $('noticeBox')?.classList.add('hidden');
+    $('startBox')?.classList.add('hidden');
+    loadPublicResults();
+    return;
+  }
+
+  const r=await run('getPublicQuiz',quizId);
+  $('loading').classList.add('hidden');
+  if(!r||!r.ok){$('closedBox').classList.remove('hidden');$('closedMessage').textContent=r?.message||''Mohon maaf, soal sedang gangguan. Kami sedang memperbaiki masalah tersebut. Silakan kembali lagi jam 16:00 WIB.<br><br>Mohon maaf atas ketidaknyamanannya.<br><br><b>Tim Quiz/Sayembara Alhanif</b>';return}
+  QUIZ=r.quiz;questions=QUIZ.questions||[];
+  $('title').textContent=QUIZ.title||'Quiz';$('tagline').textContent=QUIZ.tagline||'Quiz & Sayembara';
+  $('desc').textContent=QUIZ.description||'';$('durationPill').textContent=QUIZ.durationMinutes+' menit';
+  $('prizePill').textContent=money(QUIZ.prize)+' / pemenang';$('winnerPill').textContent=QUIZ.winners+' pemenang';
+  renderInfo();renderQuestions();
+  const saved=JSON.parse(localStorage.getItem('uqe_session_'+quizId)||'null');
+  if(saved?.id){const s=await run('getQuizState',saved.id,saved.wa,quizId);if(s?.ok){SESSION=s;openQuiz();return}localStorage.removeItem('uqe_session_'+quizId)}
+  if(['OPEN','ACTIVE','PUBLISHED'].includes(String(QUIZ.status).toUpperCase())){
+    if(QUIZ.hasLearningMaterial){$('readyBox').classList.remove('hidden')}else{$('startBox').classList.remove('hidden')}
+  }else{
+    $('readyBox').classList.add('hidden');$('startBox').classList.add('hidden');
+    $('closedBox').classList.remove('hidden');$('closedMessage').textContent='Kuis saat ini '+QUIZ.status+'.';
+  }
+ }catch(e){$('loading').classList.add('hidden');$('closedBox').classList.remove('hidden');$('closedMessage').textContent=e.message||String(e)}
+}
+
+function renderInfo(){
+ const d=[
+  ['Durasi',QUIZ.durationMinutes+' menit'],['Periode',(fmtDate(QUIZ.start)||'-')+' – '+(fmtDate(QUIZ.end)||'-')],
+  ['Peserta',QUIZ.audience||'-'],['Biaya',QUIZ.fee||'-']
+ ];
+ $('details').innerHTML=d.map(x=>`<div class="detail"><b>${esc(x[0])}</b>${esc(x[1])}</div>`).join('');
+ if(QUIZ.hasLearningMaterial || QUIZ.materialLink){
+   $('sourceBox').classList.remove('hidden');
+   $('sourceText').innerHTML='<b>'+esc(QUIZ.source||'Materi Pembelajaran')+'</b>'+(QUIZ.speaker?'<br>Pemateri: '+esc(QUIZ.speaker):'');
+   renderMaterials();
+   if(QUIZ.materialLinkEmbedUrl){
+     $('sourceText').innerHTML += '<div class="material" style="margin-top:12px"><h3>Video Pembelajaran</h3><div class="video-wrap"><iframe src="'+esc(QUIZ.materialLinkEmbedUrl)+'" title="Video Pembelajaran" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div></div>';
+   }
+  }
+ if(QUIZ.terms){$('noticeBox').classList.remove('hidden');$('termsText').textContent=QUIZ.terms}
+ $('infoBox').classList.remove('hidden');$('durationInfo').textContent='Durasi pengerjaan '+QUIZ.durationMinutes+' menit. Timer dimulai setelah Anda menekan MULAI KUIS.';
+ $('footerText').textContent=QUIZ.cta||'Selamat mengerjakan.';
+}
+function renderMaterials(){
+ const list=$('materialsList'); const ms=QUIZ.materials||[]; list.innerHTML='';
+ ms.forEach((m,i)=>{
+  const d=document.createElement('div');d.className='material';
+  let body='';
+  if(String(m.Tipe||'').toLowerCase()==='youtube' && m.embedUrl){
+    body='<div class="material-placeholder" id="matph-'+i+'"><button type="button" onclick="loadYouTube('+i+')">▶ TONTON VIDEO</button></div><div id="matvideo-'+i+'" class="hidden"></div>';
+  } else if(m.Tipe==='text'){ body='<div>'+esc(m.Konten||m.Deskripsi||'')+'</div>'; }
+  else if(m.Tipe==='image' && m.URL){ body='<img src="'+esc(m.URL)+'" alt="'+esc(m.Judul||'Materi')+'" style="max-width:100%;border-radius:10px">'; }
+  else if(m.URL){ body='<a href="'+esc(m.URL)+'" target="_blank" rel="noopener">🔗 Buka materi</a>'; }
+  d.innerHTML='<h3>'+esc(m.Judul||('Materi '+(i+1)))+'</h3>'+(m.Deskripsi?'<div class="material-desc">'+esc(m.Deskripsi)+'</div>':'')+body;list.appendChild(d);
+ });
+}
+function loadYouTube(i){
+ const m=(QUIZ.materials||[])[i]; if(!m||!m.embedUrl)return;
+ const ph=$('matph-'+i), box=$('matvideo-'+i); if(ph)ph.classList.add('hidden'); if(box){box.classList.remove('hidden');box.innerHTML='<div class="video-wrap"><iframe src="'+esc(m.embedUrl)+'" title="'+esc(m.Judul||'Video YouTube')+'" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>'; }
+}
+function markReady(){
+ READY_AT=new Date().toISOString();
+ $('readyBtn').disabled=true;$('readyBtn').textContent='MATERI SUDAH DIPAHAMI ✓';
+ $('readyBox').classList.add('hidden');$('startBox').classList.remove('hidden');
+ $('startBox').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function renderQuestions(){
+ const f=$('quizForm');f.innerHTML='';
+ questions.forEach((q,i)=>{
+  const d=document.createElement('div');d.className='question';d.dataset.qid=q.QuestionID;
+  let input='',opts=q.Options||[];
+  if(q.Tipe==='mcq'||q.Tipe==='truefalse'){
+   const list=q.Tipe==='truefalse'&&opts.length===0?[{value:'Benar'},{value:'Salah'}]:opts;
+   input=list.map(o=>`<label class="option"><input type="radio" name="${esc(q.QuestionID)}" value="${esc(o.value)}"><span>${esc(o.value)}</span></label>`).join('');
+  }else if(q.Tipe==='checkbox'){
+   input=opts.map(o=>`<label class="option"><input type="checkbox" name="${esc(q.QuestionID)}" value="${esc(o.value)}"><span>${esc(o.value)}</span></label>`).join('');
+  }else input=`<textarea name="${esc(q.QuestionID)}" placeholder="Tuliskan jawaban Anda..."></textarea>`;
+  d.innerHTML=`<div class="qnum">PERTANYAAN ${i+1} · BOBOT ${q.Bobot}</div><div class="qtext">${esc(q.Pertanyaan)}</div>${input}`;
+  f.appendChild(d);
+ });
+ f.addEventListener('input',updateProgress);f.addEventListener('change',updateProgress);updateProgress();
+}
+function updateProgress(){
+ let done=0;
+ questions.forEach(q=>{
+  const el=document.querySelector(`[data-qid="${CSS.escape(q.QuestionID)}"]`);if(!el)return;
+  if(q.Tipe==='checkbox'){if(el.querySelectorAll('input:checked').length)done++}
+  else if(q.Tipe==='mcq'||q.Tipe==='truefalse'){if(el.querySelector('input:checked'))done++}
+  else if(el.querySelector('textarea')?.value.trim())done++;
+ });
+ $('progressText').textContent=done+' dari '+questions.length+' soal terisi';$('bar').style.width=(questions.length?Math.round(done/questions.length*100):0)+'%';
+}
+async function startQuiz(){
+ if(!$('nama').value.trim()||!$('wa').value.trim()){showMsg('Nama dan nomor WhatsApp wajib diisi.');return}
+ if(!$('agree').checked){showMsg('Persetujuan wajib dicentang.');return}
+ $('startBtn').disabled=true;$('startBtn').textContent='MEMULAI...';
+ try{
+  const r=await run('startQuiz',{quizId,nama:$('nama').value.trim(),wa:$('wa').value,email:$('email').value,agree:true,ready:QUIZ.hasLearningMaterial?true:true,readyAt:READY_AT||new Date().toISOString()});
+  if(!r?.ok){showMsg(r?.message||'Gagal memulai kuis.');return}
+  SESSION=r;localStorage.setItem('uqe_session_'+quizId,JSON.stringify({id:r.id,wa:r.wa}));openQuiz();
+ }catch(e){showMsg(e.message||String(e))}
+ finally{$('startBtn').disabled=false;$('startBtn').textContent='MULAI KUIS'}
+}
+function openQuiz(){const deadline=SESSION?.participant?.deadline||SESSION?.deadline;const start=SESSION?.participant?.startTime||SESSION?.startTime;const dur=Number(SESSION?.participant?.duration||SESSION?.durationMinutes||QUIZ?.durationMinutes||30);let t=Date.parse(deadline||'');if(!Number.isFinite(t)){const st=Date.parse(start||'');if(Number.isFinite(st))t=st+dur*60000;}if(!Number.isFinite(t)){showMsg('Sesi kuis tidak memiliki batas waktu yang valid. Silakan mulai ulang kuis.');return;}SESSION.deadline=new Date(t).toISOString();$('startBox').classList.add('hidden');$('readyBox').classList.add('hidden');$('infoBox').classList.add('hidden');$('sourceBox').classList.add('hidden');$('noticeBox').classList.add('hidden');$('quizBox').classList.remove('hidden');startTimer(t);restoreAnswers()}
+function startTimer(deadline){
+ if(timer)clearInterval(timer);
+ const tick=()=>{
+  const sec=Math.max(0,Math.floor((deadline-Date.now())/1000)),m=Math.floor(sec/60),s=sec%60;
+  $('timer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  $('timer').classList.toggle('warning',sec<=300&&sec>60);$('timer').classList.toggle('danger',sec<=60);
+  $('timerStatus').textContent=sec<=60?'Segera habis!':'Waktu berjalan berdasarkan waktu server.';
+  if(sec<=0){clearInterval(timer);timer=null;submitQuiz(true)}
+ };tick();timer=setInterval(tick,500);
+}
+function restoreAnswers(){
+ const saved=JSON.parse(localStorage.getItem('uqe_answers_'+SESSION.id)||'{}');
+ questions.forEach(q=>{
+  const el=document.querySelector(`[data-qid="${CSS.escape(q.QuestionID)}"]`),v=saved[q.QuestionID];if(!el||v==null)return;
+  if(q.Tipe==='checkbox'){(Array.isArray(v)?v:[]).forEach(x=>{const c=[...el.querySelectorAll('input')].find(i=>i.value===x);if(c)c.checked=true})}
+  else if(q.Tipe==='mcq'||q.Tipe==='truefalse'){const c=[...el.querySelectorAll('input')].find(i=>i.value===v);if(c)c.checked=true}
+  else if(el.querySelector('textarea'))el.querySelector('textarea').value=v;
+ });updateProgress();
+}
+function collectAnswers(){
+ const a={};
+ questions.forEach(q=>{
+  const el=document.querySelector(`[data-qid="${CSS.escape(q.QuestionID)}"]`);if(!el)return;
+  if(q.Tipe==='checkbox')a[q.QuestionID]=[...el.querySelectorAll('input:checked')].map(x=>x.value);
+  else if(q.Tipe==='mcq'||q.Tipe==='truefalse')a[q.QuestionID]=el.querySelector('input:checked')?.value||'';
+  else a[q.QuestionID]=el.querySelector('textarea')?.value.trim()||'';
+ });return a;
+}
+async function submitQuiz(timedOut=false){
+ if(autoSubmitting)return;
+ const answers=collectAnswers();
+ if(!timedOut){
+  const incomplete=questions.find(q=>{const v=answers[q.QuestionID];return Array.isArray(v)?v.length===0:!String(v||'').trim()});
+  if(incomplete){showMsg('Masih ada soal yang belum dijawab.');return}
+  if(!confirm('Kirim semua jawaban sekarang?'))return;
+ }
+ autoSubmitting=true;$('submitBtn').disabled=true;$('submitBtn').textContent=timedOut?'WAKTU HABIS...':'MENGIRIM...';
+ try{
+  const r=await run('submitEntry',{quizId,participantId:SESSION.id,answers,timedOut});
+  if(r?.ok){
+   localStorage.removeItem('uqe_session_'+quizId);localStorage.removeItem('uqe_answers_'+SESSION.id);
+   $('quizBox').classList.add('hidden');$('successBox').classList.remove('hidden');$('pid').textContent=r.id||SESSION.id;
+  }else{
+   if(r?.expired){$('timerStatus').textContent='Waktu telah habis.'}
+   showMsg(r?.message||'Jawaban gagal dikirim.','err','submitMsg');autoSubmitting=false;$('submitBtn').disabled=false;$('submitBtn').textContent='KIRIM JAWABAN';
+  }
+ }catch(e){autoSubmitting=false;$('submitBtn').disabled=false;$('submitBtn').textContent='KIRIM JAWABAN';showMsg(e.message||String(e),'err','submitMsg')}
+}
+document.addEventListener('input',()=>{if(SESSION)localStorage.setItem('uqe_answers_'+SESSION.id,JSON.stringify(collectAnswers()))});
+init();
+
+async function loadPublicResults() {
+  try {
+    const r = await run('getPublicParticipants', quizId);
+    const tbody = $('resultsBody');
+    
+    // Perbaikan: Tambahkan pengaman !r.participants agar tidak error jika kosong/undefined
+    if (!r || !r.ok || !r.participants || !r.participants.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;" class="muted">Belum ada data peserta.</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = r.participants.map((p, i) => {
+      let tFormatted = '-';
+      if (p.timestamp) {
+        const d = new Date(p.timestamp);
+        if (!isNaN(d)) tFormatted = d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+      }
+      return '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:10px;"><b>#' + (i + 1) + '</b></td>' +
+        '<td style="padding:10px;"><b>' + esc(p.nama) + '</b></td>' +
+        '<td style="padding:10px; font-size:13px; color:var(--muted);">' + tFormatted + '</td>' +
+        '<td style="padding:10px; font-size:13px;">' + esc(p.duration) + '</td>' +
+        '<td style="padding:10px;"><b style="color:var(--primary);">' + esc(p.total) + '</b></td>' +
+        '</tr>';
+    }).join('');
+  } catch (e) {
+    $('resultsBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--danger);">Gagal memuat data peserta.</td></tr>';
+  }
+}
+
+</script>
+</body>
+</html>
